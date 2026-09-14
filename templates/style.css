@@ -1,0 +1,30 @@
+#novel-dialogue {
+    background: transparent;
+    border: none;
+    box-shadow: none;
+}
+
+#novel-dialogue > .window-header {
+    display: none;
+}
+
+#novel-dialogue > .window-content {
+    background: transparent;
+    border: none;
+    padding: 0;
+}
+
+.novel-dialogue-content {
+    width: 100%;
+    height: 100%;
+}
+
+.novel-dialogue-image {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+}
+
+#novel-dialogue.application {
+    background: transparent;
+}

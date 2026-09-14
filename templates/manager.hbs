@@ -1,0 +1,44 @@
+<div class="novel-dialogue-manager">
+
+    <div class="novel-dialogue-manager-list">
+        {{#each images}}
+            <button
+                type="button"
+                class="novel-dialogue-image-button"
+                data-path="{{path}}"
+            >
+                {{name}}
+            </button>
+        {{/each}}
+    </div>
+
+    <div class="novel-dialogue-manager-add">
+        <input
+            type="text"
+            name="image-name"
+            placeholder="Имя картинки"
+        >
+
+        <input
+            type="text"
+            name="image-path"
+            placeholder="Путь к картинке"
+            readonly
+        >
+
+        <button
+            type="button"
+            data-action="browse"
+        >
+            Выбрать файл
+        </button>
+
+        <button
+            type="button"
+            data-action="add"
+        >
+            Добавить картинку
+        </button>
+    </div>
+
+</div>
