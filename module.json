@@ -1,0 +1,27 @@
+{
+  "id": "novel-dialogue",
+  "title": "Novel dialogue",
+  "version": "0.0.1",
+  "compatibility": {
+    "minimum": "13",
+    "verified": "13"
+  },
+  "authors": [
+    {
+      "name": "Amari",
+      "url": "tg: @BezPoni",
+      "flags": {}
+    }
+  ],
+  "socket": true,
+  "flags": {
+    "canUpload": true
+  },
+  "styles": [
+    "templates/style.css"
+  ],
+  "esmodules": [
+    "src/main.js"
+  ],
+  "description": ""
+}
