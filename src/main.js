@@ -1,8 +1,7 @@
-const { ApplicationV2, HandlebarsApplicationMixin } = foundry.applications.api;
-
+const { ApplicationV2, HandlebarsApplicationMixin, DialogV2 } = foundry.applications.api;
+const { ContextMenu } = foundry.applications.ux;
 
 class NovelDialogue extends HandlebarsApplicationMixin(ApplicationV2) {
-
     imagePath = null;
 
     static DEFAULT_OPTIONS = {
@@ -36,9 +35,7 @@ class NovelDialogue extends HandlebarsApplicationMixin(ApplicationV2) {
     }
 }
 
-
 class NovelDialogueManager extends HandlebarsApplicationMixin(ApplicationV2) {
-
     static DEFAULT_OPTIONS = {
         id: "novel-dialogue-manager",
         position: {
@@ -55,93 +52,324 @@ class NovelDialogueManager extends HandlebarsApplicationMixin(ApplicationV2) {
 
     constructor(options = {}) {
         super(options);
-        this.images = game.settings.get("novel-dialogue", "images") ?? [];
+
+        this.images = game.settings.get("novel-dialogue", "images") ?? {};
+        this.currentPath = [];
+        this.selectedImagePath = "";
+
+        this.contextMenu = new ContextMenu(
+            document.body,
+            "#novel-dialogue-manager .novel-manager-image, #novel-dialogue-manager .novel-manager-folder",
+            [
+                {
+                    name: "Переименовать",
+                    icon: '<i class="fas fa-pencil"></i>',
+                    callback: element => {
+                        this._renameItem(element.dataset.name);
+                    }
+                },
+                {
+                    name: "Изменить изображение",
+                    icon: '<i class="fas fa-image"></i>',
+                    condition: element => element.classList.contains("novel-manager-image"),
+                    callback: element => {
+                        this._changeImage(element.dataset.name);
+                    }
+                },
+                {
+                    name: "Удалить",
+                    icon: '<i class="fas fa-trash"></i>',
+                    callback: element => {
+                        this._deleteItem(element.dataset.name);
+                    }
+                }
+            ],
+            {
+                fixed: true,
+                jQuery: false
+            }
+        );
     }
 
     async _prepareContext(options) {
         const context = await super._prepareContext(options);
-        context.images = this.images;
+        const folder = this._getCurrentFolder();
+
+        context.items = Object.entries(folder)
+            .map(([name, value]) => {
+                if (typeof value === "string") {
+                    return {
+                        isImage: true,
+                        name,
+                        path: value
+                    };
+                }
+
+                if (value && typeof value === "object") {
+                    return {
+                        isFolder: true,
+                        name
+                    };
+                }
+
+                return null;
+            })
+            .filter(Boolean)
+            .sort((a, b) => {
+                if (a.isFolder && !b.isFolder) return -1;
+                if (!a.isFolder && b.isFolder) return 1;
+                return 0;
+            });
+
+        context.breadcrumbs = this.currentPath.map((name, index) => ({
+            name,
+            index
+        }));
+
+        context.canGoBack = this.currentPath.length > 0;
+
         return context;
+    }
+
+    _getCurrentFolder() {
+        let folder = this.images;
+
+        for (const name of this.currentPath) {
+            folder = folder[name];
+
+            if (!folder || typeof folder !== "object") {
+                return this.images;
+            }
+        }
+
+        return folder;
     }
 
     _onRender(context, options) {
         super._onRender?.(context, options);
 
-        this.element
-            .querySelector('[data-action="browse"]')
-            ?.addEventListener("click", () => {
-                this._browseImage();
-            });
+        this.element.querySelector("#novel-manager-add-image")?.addEventListener("click", () => {
+            this._addImage();
+        });
 
-        this.element
-            .querySelector('[data-action="add"]')
-            ?.addEventListener("click", () => {
-                this._addImage();
-            });
+        this.element.querySelector("#novel-manager-add-folder")?.addEventListener("click", () => {
+            this._addFolder();
+        });
 
-        this.element
-            .querySelectorAll(".novel-dialogue-image-button")
-            .forEach(button => {
-                button.addEventListener("click", () => {
-                    this.selectImage(button.dataset.path);
-                });
+        this.element.querySelector("#novel-manager-back")?.addEventListener("click", () => {
+            this._goBack();
+        });
+
+        this.element.querySelectorAll(".novel-manager-folder").forEach(element => {
+            element.addEventListener("dblclick", () => {
+                this._openFolder(element.dataset.name);
             });
+        });
+
+        this.element.querySelectorAll(".novel-manager-image").forEach(element => {
+            element.addEventListener("dblclick", () => {
+                this.selectImage(element.dataset.path);
+            });
+        });
     }
 
-    _browseImage() {
-        const pathInput = this.element.querySelector(
-            '[name="image-path"]'
-        );
+    _openFolder(name) {
+        const folder = this._getCurrentFolder()[name];
 
-        const picker = new FilePicker({
-            type: "image",
-            current: pathInput.value,
-            callback: (path) => {
-                pathInput.value = path;
+        if (!folder || typeof folder !== "object") {
+            return;
+        }
+
+        this.currentPath.push(name);
+        this.render();
+    }
+
+    _goBack() {
+        if (!this.currentPath.length) {
+            return;
+        }
+
+        this.currentPath.pop();
+        this.render();
+    }
+
+    async _addFolder() {
+        const folderName = await DialogV2.prompt({
+            window: {
+                title: "Новая папка"
+            },
+            content: '<input type="text" name="name" value="">',
+            ok: {
+                label: "Добавить",
+                callback: (event, button) => {
+                    return button.form.elements.name.value.trim();
+                }
+            },
+            cancel: {
+                label: "Отмена"
             }
         });
 
-        picker.browse();
+        if (!folderName) {
+            return;
+        }
+
+        const currentFolder = this._getCurrentFolder();
+
+        if (Object.hasOwn(currentFolder, folderName)) {
+            ui.notifications.warn(`"${folderName}" уже существует`);
+            return;
+        }
+
+        currentFolder[folderName] = {};
+
+        await this._saveImages();
+
+        this.render();
     }
 
     async _addImage() {
-        const nameInput = this.element.querySelector(
-            '[name="image-name"]'
-        );
-
-        const pathInput = this.element.querySelector(
-            '[name="image-path"]'
-        );
-
+        const nameInput = this.element.querySelector('[name="image-name"]');
         const name = nameInput.value.trim();
-        const path = pathInput.value.trim();
 
         if (!name) {
             ui.notifications.warn("Введите имя картинки");
             return;
         }
 
-        if (!path) {
-            ui.notifications.warn("Выберите картинку");
+        const currentFolder = this._getCurrentFolder();
+
+        if (Object.hasOwn(currentFolder, name)) {
+            ui.notifications.warn(`"${name}" уже существует`);
             return;
         }
 
-        this.images.push({
-            name,
-            path
+        new FilePicker({
+            type: "image",
+            callback: async path => {
+                currentFolder[name] = path;
+
+                await this._saveImages();
+
+                nameInput.value = "";
+
+                this.render();
+            }
+        }).browse();
+    }
+
+    async _renameItem(oldName) {
+        const currentFolder = this._getCurrentFolder();
+
+        if (!Object.hasOwn(currentFolder, oldName)) {
+            return;
+        }
+
+        const newName = await DialogV2.prompt({
+            window: {
+                title: "Переименовать"
+            },
+            content: `<input type="text" name="name" value="${foundry.utils.escapeHTML(oldName)}">`,
+            ok: {
+                label: "Сохранить",
+                callback: (event, button) => {
+                    return button.form.elements.name.value.trim();
+                }
+            },
+            cancel: {
+                label: "Отмена"
+            }
         });
 
-        await game.settings.set("novel-dialogue", "images", this.images);
+        if (!newName || newName === oldName) {
+            return;
+        }
 
-        console.log("[ND] Added image:", {
-            name,
-            path
-        });
+        if (Object.hasOwn(currentFolder, newName)) {
+            ui.notifications.warn(`"${newName}" уже существует`);
+            return;
+        }
 
-        nameInput.value = "";
-        pathInput.value = "";
+        currentFolder[newName] = currentFolder[oldName];
+        delete currentFolder[oldName];
+
+        await this._saveImages();
 
         this.render();
+    }
+
+    _changeImage(name) {
+        const currentFolder = this._getCurrentFolder();
+        const currentPath = currentFolder[name];
+
+        if (typeof currentPath !== "string") {
+            return;
+        }
+
+        const picker = new FilePicker({
+            type: "image",
+            current: currentPath,
+            callback: async path => {
+                currentFolder[name] = path;
+
+                await this._saveImages();
+
+                this.render();
+            }
+        });
+
+        picker.browse();
+    }
+
+    async _deleteItem(name) {
+        const currentFolder = this._getCurrentFolder();
+
+        if (!Object.hasOwn(currentFolder, name)) {
+            return;
+        }
+
+        const confirmed = await DialogV2.confirm({
+            window: {
+                title: "Удалить"
+            },
+            content: `<p>Удалить "${foundry.utils.escapeHTML(name)}"?</p>`,
+            yes: {
+                label: "Удалить"
+            },
+            no: {
+                label: "Отмена"
+            }
+        });
+
+        if (!confirmed) {
+            return;
+        }
+
+        delete currentFolder[name];
+
+        await this._saveImages();
+
+        this.render();
+    }
+
+    _browseImage() {
+        const picker = new FilePicker({
+            type: "image",
+            current: this.selectedImagePath,
+            callback: path => {
+                this.selectedImagePath = path;
+            }
+        });
+
+        picker.browse();
+    }
+
+    async _saveImages() {
+        await game.settings.set(
+            "novel-dialogue",
+            "images",
+            this.images
+        );
     }
 
     selectImage(path) {
@@ -157,37 +385,30 @@ class NovelDialogueManager extends HandlebarsApplicationMixin(ApplicationV2) {
     }
 }
 
-
 Hooks.once("init", () => {
     game.settings.register("novel-dialogue", "images", {
         name: "Novel Dialogue Images",
         scope: "world",
         config: false,
         type: Object,
-        default: []
+        default: {}
     });
 });
-
 
 Hooks.once("ready", () => {
     game.novelDialogue = new NovelDialogue();
 
-    game.socket.on("module.novel-dialogue", (data) => {
-        console.log("[ND] Socket received:", data);
-
+    game.socket.on("module.novel-dialogue", data => {
         if (!data) return;
         if (data.action !== "showImage") return;
         if (!data.path) return;
 
         game.novelDialogue.imagePath = data.path;
         game.novelDialogue.render(true);
-
-        console.log("[ND] Showing image:", data.path);
     });
 });
 
-
-Hooks.on("getSceneControlButtons", (controls) => {
+Hooks.on("getSceneControlButtons", controls => {
     if (!game.user.isGM) return;
 
     controls.tokens.tools["novel-dialogue"] = {

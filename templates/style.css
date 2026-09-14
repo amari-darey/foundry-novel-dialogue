@@ -4,6 +4,10 @@
     box-shadow: none;
 }
 
+#novel-dialogue.application {
+    background: transparent;
+}
+
 #novel-dialogue > .window-header {
     display: none;
 }
@@ -25,6 +29,89 @@
     object-fit: contain;
 }
 
-#novel-dialogue.application {
-    background: transparent;
+.novel-manager {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    width: 100%;
+    height: 100%;
+}
+
+.novel-manager-navigation {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex: 0 0 auto;
+}
+
+.novel-manager-navigation button {
+    width: 32px;
+    height: 32px;
+    padding: 0;
+    flex: 0 0 32px;
+}
+
+.novel-manager-path {
+    flex: 1;
+    min-width: 0;
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+    font-size: 1.1em;
+}
+
+.novel-manager-list {
+    flex: 1 1 auto;
+    min-height: 250px;
+    margin: 0;
+    padding: 4px;
+    overflow-y: auto;
+    list-style: none;
+}
+
+.novel-manager-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    width: 100%;
+    box-sizing: border-box;
+    padding: 6px 8px;
+    cursor: pointer;
+    text-align: right;
+    justify-content: flex-end;
+}
+
+.novel-manager-item:hover {
+    background: rgba(255, 255, 255, 0.08);
+}
+
+.novel-manager-item i {
+    flex: 0 0 20px;
+    width: 20px;
+    text-align: center;
+}
+
+.novel-manager-item span {
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+}
+
+.novel-manager-add {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    flex: 0 0 auto;
+}
+
+.novel-manager-add input {
+    flex: 1;
+    min-width: 0;
+}
+
+.novel-manager-add button {
+    width: 32px;
+    height: 32px;
+    padding: 0;
+    flex: 0 0 32px;
 }

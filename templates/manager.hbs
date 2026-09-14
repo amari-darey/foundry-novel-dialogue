@@ -1,43 +1,37 @@
-<div class="novel-dialogue-manager">
+<div class="novel-manager">
 
-    <div class="novel-dialogue-manager-list">
-        {{#each images}}
-            <button
-                type="button"
-                class="novel-dialogue-image-button"
-                data-path="{{path}}"
-            >
-                {{name}}
-            </button>
-        {{/each}}
+    <div class="novel-manager-navigation">
+        <button type="button" id="novel-manager-back" {{#unless canGoBack}}disabled{{/unless}}><i class="fas fa-arrow-left"></i></button>
+        <span class="novel-manager-path">/{{#each breadcrumbs}}{{name}}{{#unless @last}}/{{/unless}}{{/each}}</span>
     </div>
 
-    <div class="novel-dialogue-manager-add">
-        <input
-            type="text"
-            name="image-name"
-            placeholder="Имя картинки"
-        >
+    <ol class="novel-manager-list">
+        {{#each items}}
+            {{#if isFolder}}
+                <li class="novel-manager-item novel-manager-folder" data-name="{{name}}">
+                    <i class="fas fa-folder"></i>
+                    <span>{{name}}</span>
+                </li>
+            {{/if}}
 
-        <input
-            type="text"
-            name="image-path"
-            placeholder="Путь к картинке"
-            readonly
-        >
+            {{#if isImage}}
+                <li class="novel-manager-item novel-manager-image" data-name="{{name}}" data-path="{{path}}">
+                    <i class="fas fa-file-image"></i>
+                    <span>{{name}}</span>
+                </li>
+            {{/if}}
+        {{/each}}
+    </ol>
 
-        <button
-            type="button"
-            data-action="browse"
-        >
-            Выбрать файл
+    <div class="novel-manager-add">
+        <input type="text" name="image-name" placeholder="Имя">
+
+        <button type="button" id="novel-manager-add-image" title="Добавить изображение">
+            <i class="fas fa-plus"></i>
         </button>
 
-        <button
-            type="button"
-            data-action="add"
-        >
-            Добавить картинку
+        <button type="button" id="novel-manager-add-folder" title="Создать папку">
+            <i class="fas fa-folder-plus"></i>
         </button>
     </div>
 
