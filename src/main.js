@@ -38,9 +38,14 @@ class NovelDialogue extends HandlebarsApplicationMixin(ApplicationV2) {
 class NovelDialogueManager extends HandlebarsApplicationMixin(ApplicationV2) {
     static DEFAULT_OPTIONS = {
         id: "novel-dialogue-manager",
+        title: "Новельный диалог",
         position: {
             width: 500,
             height: 600
+        },
+        window: {
+            resizable: true,
+            title: "Новельный диалог"
         }
     };
 
