@@ -1,7 +1,7 @@
 {
   "id": "novel-dialogue",
   "title": "Novel dialogue",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "compatibility": {
     "minimum": "13",
     "verified": "13"
@@ -23,5 +23,5 @@
   "esmodules": [
     "src/main.js"
   ],
-  "description": ""
+  "description": "A module for displaying images in the style of visual novels."
 }
